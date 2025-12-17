@@ -16,7 +16,7 @@ export const generateNLSLessonPlan = async (
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
 
-  const modelId = "gemini-2.5-flash";
+  const modelId = "gemini-3-pro-preview";
 
   let distributionContext = "";
   if (info.distributionContent && info.distributionContent.trim().length > 0) {
