@@ -84,7 +84,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#E3F2FD] font-sans pb-12">
-      <Header />
+      <Header onOpenSettings={() => setShowApiKeyModal(true)} />
 
       <main className="max-w-5xl mx-auto px-4 mt-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -153,8 +153,8 @@ const App: React.FC = () => {
               onClick={handleProcess}
               disabled={loading}
               className={`w-full py-4 rounded-xl shadow-lg flex items-center justify-center space-x-2 text-white font-bold text-lg transition-all transform hover:-translate-y-1 ${loading
-                  ? 'bg-slate-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-blue-800 hover:shadow-blue-500/30'
+                ? 'bg-slate-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-blue-600 to-blue-800 hover:shadow-blue-500/30'
                 }`}
             >
               {loading ? (

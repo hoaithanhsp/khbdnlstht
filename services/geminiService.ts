@@ -2,6 +2,14 @@ import { GoogleGenAI } from "@google/genai";
 import { LessonInfo, ProcessingOptions } from "../types";
 import { SYSTEM_INSTRUCTION, NLS_FRAMEWORK_DATA } from "../constants";
 
+// Define the hierarchy of models for fallback
+const MODELS = [
+  "gemini-2.5-flash",        // Priority 1: Stable standard (Default)
+  "gemini-3-flash-preview",  // Priority 2: Fast & Good quality
+  "gemini-3-pro-preview",    // Priority 3: Deep thinking / Best quality
+  "gemini-2.5-pro"           // Priority 4: Legacy high/stable
+];
+
 export const generateNLSLessonPlan = async (
   info: LessonInfo,
   options: ProcessingOptions
@@ -15,8 +23,6 @@ export const generateNLSLessonPlan = async (
   }
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
-
-  const modelId = "gemini-3-pro-preview";
 
   let distributionContext = "";
   if (info.distributionContent && info.distributionContent.trim().length > 0) {
@@ -76,65 +82,77 @@ export const generateNLSLessonPlan = async (
     ${info.content}
   `;
 
-  // Retry mechanism for 503 Overloaded errors
-  let attempt = 0;
-  const maxRetries = 3;
+  // Fallback Logic: Try each model in sequence
+  let lastError = null;
 
-  while (attempt < maxRetries) {
+  for (let i = 0; i < MODELS.length; i++) {
+    const currentModelId = MODELS[i];
+    console.log(`Attempting generation with model: ${currentModelId}...`);
+
     try {
       const response = await ai.models.generateContent({
-        model: modelId,
+        model: currentModelId,
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
-          temperature: 0.1, // Giảm nhiệt độ xuống thấp nhất để đảm bảo AI làm đúng chỉ dẫn cứng
+          temperature: 0.1, // Low temperature for strict instruction adherence
         },
         contents: userPrompt,
       });
 
       const text = response.text;
       if (!text) {
-        throw new Error("API trả về kết quả rỗng.");
+        throw new Error("API trả về kết quả rỗng (Empty Response).");
       }
-      return text;
-    } catch (error: any) {
-      attempt++;
-      console.error(`Gemini API Error (Attempt ${attempt}/${maxRetries}):`, error);
+      return text; // Success!
 
-      // Handle raw JSON errors (e.g. 503 Overloaded)
+    } catch (error: any) {
+      console.error(`Error with model ${currentModelId}:`, error);
+
+      // Extract detailed error message
       let errorMessage = error.message || "";
+
+      // Try parsing JSON error message if applicable
       if (typeof errorMessage === 'string' && errorMessage.trim().startsWith('{')) {
         try {
           const errorObj = JSON.parse(errorMessage);
           if (errorObj.error && errorObj.error.message) {
             errorMessage = errorObj.error.message;
           }
-        } catch (e) { /* ignore JSON parse error */ }
+        } catch (e) { /* ignore parse error */ }
       }
 
-      // Update error message for cleaner display
+      // Update error with cleaner message
       error.message = errorMessage;
+      lastError = error;
 
-      // If it's a 503 or "overloaded" error, retry
-      if (attempt < maxRetries && (errorMessage.includes("503") || errorMessage.toLowerCase().includes("overloaded") || errorMessage.includes("UNAVAILABLE"))) {
-        console.log("Model overloaded, retrying in 3 seconds...");
-        await new Promise(resolve => setTimeout(resolve, 3000));
+      // Check if we should retry with next model
+      const isRetryable =
+        errorMessage.includes("503") ||
+        errorMessage.toLowerCase().includes("overloaded") ||
+        errorMessage.includes("UNAVAILABLE") ||
+        errorMessage.includes("429"); // Also retry on rate limits if we have other models
+
+      if (isRetryable && i < MODELS.length - 1) {
+        console.warn(`Model ${currentModelId} failed/overloaded. Switching to fallback model...`);
+        continue; // Try next model
+      } else if (i < MODELS.length - 1) {
+        // Even for non-standard retryable errors, if it's a model-specific issue (like 404 Not Found for model), we should try next.
+        // But for API Key issues (403), we should stop.
+        if (errorMessage.includes("403") || errorMessage.includes("API key not valid")) {
+          throw error; // Stop immediately, key is wrong
+        }
+        // For other errors, we might casually try the next model just in case, 
+        // but let's stick to the rule: "If model fails -> switch".
+        console.warn(`Model ${currentModelId} encountered error. Switching to fallback model...`);
         continue;
       }
-
-      // Pass through specific error messages
-      if (error.message && (
-        error.message.includes("429") ||
-        error.message.includes("403") ||
-        error.message.includes("400") ||
-        error.message.includes("RESOURCE_EXHAUSTED") ||
-        error.message.includes("API key not valid")
-      )) {
-        throw error;
-      }
-
-      throw new Error(error.message || "Đã xảy ra lỗi khi kết nối với AI. Vui lòng kiểm tra API Key hoặc thử lại sau.");
     }
   }
 
-  throw new Error("Đã hết số lần thử lại nhưng vẫn lỗi. Vui lòng thử lại sau.");
+  // If all models failed
+  if (lastError) {
+    throw lastError; // Throw the last error encountered (likely contains the specific code like 429)
+  }
+
+  throw new Error("Tất cả các model đều thất bại. Vui lòng thử lại sau.");
 };
