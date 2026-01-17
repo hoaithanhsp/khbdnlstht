@@ -33,29 +33,27 @@ Tôi đang triển khai ứng dụng từ github qua vercel, hãy kiểm tra gi�
 
 ### 5.1. Giữ nguyên File gốc (XML Injection)
 - **Mô tả**: Hệ thống sử dụng kỹ thuật **XML Injection** để chèn nội dung vào cấu trúc file Word (.docx) hiện tại.
-- **Nguyên lý hoạt động**:
-  1. File DOCX = file ZIP chứa các file XML
-  2. Sử dụng **JSZip** để giải nén và đọc `word/document.xml`
-  3. **Tìm vị trí** các phần trong giáo án (Mục tiêu, Nội dung, Tổ chức)
-  4. **Chèn NLS vào đúng vị trí** tương ứng
-  5. Đóng gói lại thành file DOCX mới
+- **Nguyên lý**: Chỉ **CHÈN THÊM** nội dung, không xóa/sửa nội dung cũ → Giữ nguyên 100% định dạng, OLE, hình ảnh.
 
 ### 5.2. Bảo toàn OLE Objects
 - Công thức MathType và Hình vẽ **không bị ảnh hưởng**
 - Các file trong `word/embeddings/` và `word/media/` được giữ nguyên
-- Chỉ **CHÈN THÊM** nội dung, không xóa/sửa nội dung cũ
 
 ### 5.3. Cấu trúc đầu ra từ AI
-AI trả về nội dung theo 3 section với markers rõ ràng:
-- `===NLS_MỤC_TIÊU===` ... `===END_MỤC_TIÊU===`: Chèn sau phần Thái độ/Phẩm chất
-- `===NLS_NỘI_DUNG===` ... `===END_NỘI_DUNG===`: Chèn sau phần b) Nội dung
-- `===NLS_TỔ_CHỨC===` ... `===END_TỔ_CHỨC===`: Chèn vào phần d) Tổ chức thực hiện
+AI trả về nội dung theo **nhiều section** để chèn vào **nhiều vị trí**:
+```
+===NLS_MỤC_TIÊU===     → Chèn sau phần Thái độ/Phẩm chất
+===NLS_HOẠT_ĐỘNG_1===  → Chèn sau "Hoạt động 1"
+===NLS_HOẠT_ĐỘNG_2===  → Chèn sau "Hoạt động 2"
+===NLS_HOẠT_ĐỘNG_3===  → Chèn sau "Hoạt động 3"
+===NLS_HOẠT_ĐỘNG_4===  → Chèn sau "Hoạt động 4"
+===NLS_CỦNG_CỐ===      → Chèn vào phần Củng cố/Vận dụng
+```
 
-### 5.4. Vị trí chèn thông minh
-Hệ thống tìm các pattern trong file gốc để chèn vào đúng vị trí:
-- **Mục tiêu**: Sau "Thái độ", "Phẩm chất", "Năng lực chung"
-- **Nội dung**: Sau "b) Nội dung", "Sản phẩm"
-- **Tổ chức**: Sau "d) Tổ chức thực hiện", "Hoạt động của GV"
+### 5.4. Chèn PHÂN TÁN vào nhiều vị trí
+- Hệ thống tìm các pattern "Hoạt động 1", "Hoạt động 2", etc. trong file gốc
+- Chèn nội dung NLS **SAU** mỗi hoạt động tương ứng
+- Nếu không tìm thấy vị trí → Fallback chèn vào cuối file
 
 ### 5.5. Định dạng nội dung NLS
 - Hiển thị **màu đỏ** (không in đậm) để dễ nhận biết
@@ -65,7 +63,8 @@ Hệ thống tìm các pattern trong file gốc để chèn vào đúng vị tr�
 - **JSZip**: Đọc và ghi file DOCX (ZIP)
 - Workflow:
   ```
-  File gốc → JSZip → Tìm vị trí → Chèn NLS màu đỏ → Đóng gói → File DOCX mới
+  File gốc → JSZip → Tìm "Hoạt động X" → Chèn NLS màu đỏ → Đóng gói → File mới
   ```
+
 
 
