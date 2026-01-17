@@ -29,6 +29,12 @@ export interface LessonInfo {
   distributionContent?: string; // Nội dung phân phối chương trình
 }
 
+// Interface lưu trữ file DOCX gốc cho XML Injection
+export interface OriginalDocxFile {
+  arrayBuffer: ArrayBuffer;
+  fileName: string;
+}
+
 export interface ProcessingOptions {
   analyzeOnly: boolean;
   detailedReport: boolean;

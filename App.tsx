@@ -3,7 +3,7 @@ import Header from './components/Header';
 import LessonForm from './components/LessonForm';
 import ContentInput from './components/ContentInput';
 import ResultDisplay from './components/ResultDisplay';
-import { Subject, Textbook } from './types';
+import { Subject, Textbook, OriginalDocxFile } from './types';
 import { generateNLSLessonPlan } from './services/geminiService';
 import { Sparkles, Settings2, Key } from 'lucide-react';
 import ApiKeyModal from './components/ApiKeyModal';
@@ -30,6 +30,9 @@ const App: React.FC = () => {
   // API Key State
   const [apiKey, setApiKey] = useState<string>('');
   const [showApiKeyModal, setShowApiKeyModal] = useState<boolean>(false);
+
+  // State lưu trữ file DOCX gốc cho XML Injection
+  const [originalDocx, setOriginalDocx] = useState<OriginalDocxFile | null>(null);
 
   useEffect(() => {
     const storedKey = localStorage.getItem('GEMINI_API_KEY');
@@ -102,6 +105,7 @@ const App: React.FC = () => {
               setLessonContent={setLessonContent}
               distributionContent={distributionContent}
               setDistributionContent={setDistributionContent}
+              onOriginalDocxLoaded={setOriginalDocx}
             />
 
             {/* Options Panel */}
@@ -211,7 +215,7 @@ const App: React.FC = () => {
 
         {/* Result Section */}
         <div className="mt-8">
-          <ResultDisplay result={result} loading={loading} />
+          <ResultDisplay result={result} loading={loading} originalDocx={originalDocx} />
         </div>
       </main>
 
