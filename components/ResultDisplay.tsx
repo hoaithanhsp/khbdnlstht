@@ -26,56 +26,77 @@ interface ResultDisplayProps {
   originalDocx?: OriginalDocxFile | null;
 }
 
+// Interface cho các section NLS đã parse
+interface NLSSections {
+  mucTieu: string;
+  noiDung: string;
+  toChuc: string;
+}
+
 const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, originalDocx }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
 
-  // Helper: Tạo đối tượng Table cho docx từ mảng string Markdown table
+  // Parse kết quả AI thành các section riêng biệt
+  const parseNLSSections = (content: string): NLSSections => {
+    const sections: NLSSections = {
+      mucTieu: '',
+      noiDung: '',
+      toChuc: ''
+    };
+
+    // Extract Mục tiêu section
+    const mucTieuMatch = content.match(/===NLS_MỤC_TIÊU===([\s\S]*?)===END_MỤC_TIÊU===/);
+    if (mucTieuMatch) {
+      sections.mucTieu = mucTieuMatch[1].trim();
+    }
+
+    // Extract Nội dung section
+    const noiDungMatch = content.match(/===NLS_NỘI_DUNG===([\s\S]*?)===END_NỘI_DUNG===/);
+    if (noiDungMatch) {
+      sections.noiDung = noiDungMatch[1].trim();
+    }
+
+    // Extract Tổ chức section
+    const toChucMatch = content.match(/===NLS_TỔ_CHỨC===([\s\S]*?)===END_TỔ_CHỨC===/);
+    if (toChucMatch) {
+      sections.toChuc = toChucMatch[1].trim();
+    }
+
+    return sections;
+  };
+
+  // Helper: Tạo đối tượng Table cho docx
   const createTableFromMarkdown = (tableLines: string[]): Table | null => {
     try {
       const validLines = tableLines.filter(line => !line.match(/^\|?\s*[-:]+[-|\s:]*\|?\s*$/));
-
       const rows = validLines.map(line => {
         const cells = line.split('|');
         if (line.trim().startsWith('|')) cells.shift();
         if (line.trim().endsWith('|')) cells.pop();
-
         return new TableRow({
           children: cells.map(cellContent => new TableCell({
-            children: [new Paragraph({
-              children: parseTextWithFormatting(cellContent.trim())
-            })],
+            children: [new Paragraph({ children: parseTextWithFormatting(cellContent.trim()) })],
             borders: {
               top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
               bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
               left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
               right: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
             },
-            width: {
-              size: 100 / cells.length,
-              type: WidthType.PERCENTAGE,
-            }
+            width: { size: 100 / cells.length, type: WidthType.PERCENTAGE }
           }))
         });
       });
-
-      return new Table({
-        rows: rows,
-        width: {
-          size: 100,
-          type: WidthType.PERCENTAGE,
-        }
-      });
+      return new Table({ rows: rows, width: { size: 100, type: WidthType.PERCENTAGE } });
     } catch (e) {
       console.error("Lỗi parse table:", e);
       return null;
     }
   };
 
-  // Helper: Parse text with bold, italic, underline, and RED color for NLS content
+  // Helper: Parse text with formatting - CHỈ MÀU ĐỎ, KHÔNG IN ĐẬM
   const parseTextWithFormatting = (text: string): TextRun[] => {
     const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|<u>.*?<\/u>|<red>.*?<\/red>)/g);
-
     return parts.map(part => {
       if (part.startsWith('**') && part.endsWith('**')) {
         return new TextRun({ text: part.slice(2, -2), bold: true });
@@ -83,20 +104,13 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
       if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
         return new TextRun({ text: part.slice(1, -1), italics: true });
       }
-      if (part.startsWith('_') && part.endsWith('_')) {
-        return new TextRun({ text: part.slice(1, -1), italics: true });
-      }
       if (part.startsWith('<u>') && part.endsWith('</u>')) {
         const cleanText = part.replace(/<u>/g, '').replace(/<\/u>/g, '');
         return new TextRun({ text: cleanText, underline: { type: UnderlineType.SINGLE } });
       }
-      // RED color for NLS content - KHÔNG in đậm
       if (part.startsWith('<red>') && part.endsWith('</red>')) {
         const cleanText = part.replace(/<red>/g, '').replace(/<\/red>/g, '');
-        return new TextRun({
-          text: cleanText,
-          color: "FF0000" // Chỉ màu đỏ, không in đậm
-        });
+        return new TextRun({ text: cleanText, color: "FF0000" }); // Chỉ màu đỏ
       }
       return new TextRun({ text: part });
     });
@@ -112,7 +126,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
       .replace(/'/g, '&apos;');
   };
 
-  // Chuyển Markdown sang Word XML paragraphs - CHỈ MÀU ĐỎ, KHÔNG IN ĐẬM
+  // Chuyển Markdown sang Word XML - CHỈ MÀU ĐỎ
   const convertMarkdownToWordXml = (markdown: string): string => {
     const lines = markdown.split('\n');
     let xml = '';
@@ -124,101 +138,124 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
         continue;
       }
 
-      // Kiểm tra và xử lý thẻ <red>
       let processedLine = trimmed;
-      let isRedContent = false;
+      let isRedContent = trimmed.includes('<red>') || trimmed.includes('</red>');
+      processedLine = trimmed.replace(/<\/?red>/g, '');
 
-      if (trimmed.includes('<red>') || trimmed.includes('</red>')) {
-        isRedContent = true;
-        processedLine = trimmed.replace(/<\/?red>/g, '');
-      }
+      const content = escapeXml(processedLine);
 
-      // Heading 1 (##)
-      if (processedLine.startsWith('## ')) {
-        const content = escapeXml(processedLine.replace('## ', ''));
-        if (isRedContent) {
-          xml += `<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>${content}</w:t></w:r></w:p>`;
-        } else {
-          xml += `<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>${content}</w:t></w:r></w:p>`;
-        }
-      }
-      // Heading 2 (###)
-      else if (processedLine.startsWith('### ')) {
-        const content = escapeXml(processedLine.replace('### ', ''));
-        if (isRedContent) {
-          xml += `<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr><w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>${content}</w:t></w:r></w:p>`;
-        } else {
-          xml += `<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr><w:r><w:t>${content}</w:t></w:r></w:p>`;
-        }
-      }
-      // List items (- or *)
-      else if (processedLine.startsWith('- ') || processedLine.startsWith('* ')) {
-        const content = escapeXml(processedLine.substring(2));
-        if (isRedContent) {
-          xml += `<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>${content}</w:t></w:r></w:p>`;
-        } else {
-          xml += `<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>${content}</w:t></w:r></w:p>`;
-        }
-      }
-      // Normal text
-      else {
-        const content = escapeXml(processedLine);
-        if (isRedContent) {
-          xml += `<w:p><w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>${content}</w:t></w:r></w:p>`;
-        } else {
-          xml += `<w:p><w:r><w:t>${content}</w:t></w:r></w:p>`;
-        }
+      if (isRedContent) {
+        xml += `<w:p><w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>${content}</w:t></w:r></w:p>`;
+      } else {
+        xml += `<w:p><w:r><w:t>${content}</w:t></w:r></w:p>`;
       }
     }
 
     return xml;
   };
 
-  // XML Injection: Chèn nội dung vào file DOCX gốc - GIỮ NGUYÊN ĐỊNH DẠNG GỐC
+  // Tìm vị trí trong XML và chèn nội dung SAU vị trí đó
+  const findAndInsertAfter = (xml: string, searchPatterns: string[], contentToInsert: string): string => {
+    let result = xml;
+
+    for (const pattern of searchPatterns) {
+      // Tìm paragraph chứa pattern
+      // Word XML structure: <w:p>...<w:t>text</w:t>...</w:p>
+      const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      // Regex để tìm paragraph chứa text pattern
+      const regex = new RegExp(`(<w:p[^>]*>(?:(?!<w:p[^>]*>)[\\s\\S])*?${escapedPattern}(?:(?!<w:p[^>]*>)[\\s\\S])*?</w:p>)`, 'i');
+
+      const match = result.match(regex);
+      if (match) {
+        // Chèn nội dung SAU paragraph tìm thấy
+        result = result.replace(match[0], match[0] + contentToInsert);
+        return result; // Chỉ chèn một lần
+      }
+    }
+
+    return result;
+  };
+
+  // XML Injection với vị trí chèn thông minh
   const injectContentToDocx = async (
     originalArrayBuffer: ArrayBuffer,
-    contentToInject: string
+    aiResult: string
   ): Promise<Blob> => {
     const zip = await JSZip.loadAsync(originalArrayBuffer);
 
     const documentXmlFile = zip.file('word/document.xml');
     if (!documentXmlFile) {
-      throw new Error('File DOCX không hợp lệ: không tìm thấy word/document.xml');
+      throw new Error('File DOCX không hợp lệ');
     }
 
     let documentXml = await documentXmlFile.async('string');
 
-    // Tạo nội dung NLS dạng XML với tiêu đề phân cách
-    const nlsXmlHeader = `
-      <w:p>
-        <w:pPr><w:pBdr><w:top w:val="single" w:sz="12" w:space="1" w:color="FF0000"/></w:pBdr></w:pPr>
-      </w:p>
-      <w:p>
-        <w:pPr><w:jc w:val="center"/></w:pPr>
-        <w:r>
-          <w:rPr><w:color w:val="FF0000"/><w:sz w:val="28"/></w:rPr>
-          <w:t>═══ NỘI DUNG TÍCH HỢP NĂNG LỰC SỐ ═══</w:t>
-        </w:r>
-      </w:p>
-    `;
+    // Parse các section từ kết quả AI
+    const sections = parseNLSSections(aiResult);
 
-    const nlsContent = convertMarkdownToWordXml(contentToInject);
-
-    // Chèn nội dung NLS VÀO CUỐI body (trước </w:body>)
-    // Điều này GIỮ NGUYÊN toàn bộ nội dung và định dạng của file gốc
-    if (documentXml.includes('</w:body>')) {
-      documentXml = documentXml.replace(
-        '</w:body>',
-        `${nlsXmlHeader}${nlsContent}</w:body>`
-      );
-    } else {
-      throw new Error('Không tìm thấy thẻ </w:body> trong document.xml');
+    // 1. Chèn NLS_MỤC_TIÊU sau phần Mục tiêu
+    if (sections.mucTieu) {
+      const mucTieuXml = convertMarkdownToWordXml(sections.mucTieu);
+      // Tìm các pattern phổ biến cho phần Mục tiêu
+      const mucTieuPatterns = [
+        'Thái độ',
+        'thái độ',
+        'THÁI ĐỘ',
+        '3. Thái độ',
+        'c) Thái độ',
+        'Năng lực chung',
+        'năng lực chung',
+        'Phẩm chất',
+        'phẩm chất',
+        'II. THIẾT BỊ',
+        'II. CHUẨN BỊ',
+        'II. ĐỒ DÙNG'
+      ];
+      documentXml = findAndInsertAfter(documentXml, mucTieuPatterns, mucTieuXml);
     }
 
-    // Cập nhật lại file - GIỮ NGUYÊN tất cả file khác (OLE, media, styles, etc.)
+    // 2. Chèn NLS_NỘI_DUNG sau phần Nội dung
+    if (sections.noiDung) {
+      const noiDungXml = convertMarkdownToWordXml(sections.noiDung);
+      const noiDungPatterns = [
+        'b) Nội dung',
+        'b. Nội dung',
+        'Nội dung:',
+        'NỘI DUNG',
+        'c) Sản phẩm',
+        'c. Sản phẩm'
+      ];
+      documentXml = findAndInsertAfter(documentXml, noiDungPatterns, noiDungXml);
+    }
+
+    // 3. Chèn NLS_TỔ_CHỨC sau phần Tổ chức thực hiện
+    if (sections.toChuc) {
+      const toChucXml = convertMarkdownToWordXml(sections.toChuc);
+      const toChucPatterns = [
+        'd) Tổ chức thực hiện',
+        'd. Tổ chức thực hiện',
+        'Tổ chức thực hiện',
+        'TỔ CHỨC THỰC HIỆN',
+        'Hoạt động của GV',
+        'Hoạt động của giáo viên'
+      ];
+      documentXml = findAndInsertAfter(documentXml, toChucPatterns, toChucXml);
+    }
+
+    // Nếu không tìm thấy vị trí nào, chèn vào cuối (fallback)
+    if (!sections.mucTieu && !sections.noiDung && !sections.toChuc) {
+      // Fallback: chèn toàn bộ kết quả vào cuối
+      const allContentXml = `
+        <w:p><w:pPr><w:pBdr><w:top w:val="single" w:sz="12" w:space="1" w:color="FF0000"/></w:pBdr></w:pPr></w:p>
+        <w:p><w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>═══ NỘI DUNG TÍCH HỢP NĂNG LỰC SỐ ═══</w:t></w:r></w:p>
+        ${convertMarkdownToWordXml(aiResult)}
+      `;
+      documentXml = documentXml.replace('</w:body>', allContentXml + '</w:body>');
+    }
+
     zip.file('word/document.xml', documentXml);
 
-    // Xuất file mới
     const blob = await zip.generateAsync({
       type: 'blob',
       mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -227,7 +264,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
     return blob;
   };
 
-  // Hàm tạo file DOCX mới từ Markdown (fallback khi không có file gốc)
+  // Hàm tạo file DOCX mới (fallback)
   const createNewDocx = async (content: string): Promise<Blob> => {
     const lines = content.split('\n');
     const children: (Paragraph | Table)[] = [];
@@ -259,6 +296,11 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
         continue;
       }
 
+      // Bỏ qua các section markers
+      if (trimmed.startsWith('===') && trimmed.endsWith('===')) {
+        continue;
+      }
+
       if (trimmed.startsWith('## ')) {
         children.push(new Paragraph({
           children: parseTextWithFormatting(trimmed.replace('## ', '')),
@@ -271,16 +313,9 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
           heading: HeadingLevel.HEADING_2,
           spacing: { before: 150, after: 50 }
         }));
-      } else if (trimmed.startsWith('#### ')) {
+      } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
         children.push(new Paragraph({
-          children: parseTextWithFormatting(trimmed.replace('#### ', '')),
-          heading: HeadingLevel.HEADING_3,
-          spacing: { before: 100, after: 50 }
-        }));
-      } else if (trimmed.startsWith('- ') || trimmed.startsWith('+ ') || trimmed.startsWith('* ')) {
-        const listContent = trimmed.substring(2);
-        children.push(new Paragraph({
-          children: parseTextWithFormatting(listContent),
+          children: parseTextWithFormatting(trimmed.substring(2)),
           bullet: { level: 0 }
         }));
       } else {
@@ -298,14 +333,10 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
     }
 
     const doc = new Document({
-      sections: [{
-        properties: {},
-        children: children,
-      }],
+      sections: [{ properties: {}, children: children }],
     });
 
-    const blob = await Packer.toBlob(doc);
-    return blob;
+    return await Packer.toBlob(doc);
   };
 
   // Hàm chính xuất file DOCX
@@ -318,13 +349,11 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
       let fileName: string;
 
       if (originalDocx?.arrayBuffer) {
-        // SỬ DỤNG XML INJECTION - GIỮ NGUYÊN FILE GỐC 100%
-        console.log('Sử dụng XML Injection để giữ nguyên file gốc...');
+        console.log('Sử dụng XML Injection với vị trí chèn thông minh...');
         blob = await injectContentToDocx(originalDocx.arrayBuffer, result);
         fileName = originalDocx.fileName.replace('.docx', '_NLS.docx');
       } else {
-        // Fallback: tạo file mới (khi không có file DOCX gốc)
-        console.log('Không có file gốc, tạo file DOCX mới...');
+        console.log('Tạo file DOCX mới...');
         blob = await createNewDocx(result);
         fileName = 'Giao_an_NLS.docx';
       }
@@ -357,11 +386,21 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
 
   if (!result) return null;
 
-  // Custom component để render thẻ <red> màu đỏ trong preview
   const components = {
     red: ({ children }: { children: React.ReactNode }) => (
       <span style={{ color: 'red' }}>{children}</span>
     ),
+  };
+
+  // Hiển thị nội dung đã parse cho preview
+  const getCleanResultForPreview = (content: string): string => {
+    return content
+      .replace(/===NLS_MỤC_TIÊU===/g, '\n**📌 NỘI DUNG BỔ SUNG CHO MỤC TIÊU:**\n')
+      .replace(/===END_MỤC_TIÊU===/g, '\n---\n')
+      .replace(/===NLS_NỘI_DUNG===/g, '\n**📌 NỘI DUNG BỔ SUNG CHO PHẦN NỘI DUNG:**\n')
+      .replace(/===END_NỘI_DUNG===/g, '\n---\n')
+      .replace(/===NLS_TỔ_CHỨC===/g, '\n**📌 NỘI DUNG BỔ SUNG CHO TỔ CHỨC THỰC HIỆN:**\n')
+      .replace(/===END_TỔ_CHỨC===/g, '\n---\n');
   };
 
   return (
@@ -373,7 +412,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
         <div>
           <h2 className="text-2xl font-bold text-blue-900">Soạn giáo án thành công!</h2>
           <p className="text-slate-600 mt-2 max-w-lg mx-auto">
-            Hệ thống đã tích hợp xong năng lực số vào bài dạy của bạn.
+            Hệ thống đã tạo nội dung NLS để chèn vào giáo án của bạn.
             {result.includes("(Nội dung trích xuất nguyên văn từ PPCT)") && (
               <span className="block text-green-700 font-medium mt-1 text-sm bg-green-100 p-2 rounded">
                 * Đã áp dụng CHÍNH XÁC năng lực số từ PPCT.
@@ -382,11 +421,11 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
           </p>
           {originalDocx && (
             <p className="text-green-600 font-medium mt-2 text-sm bg-green-50 p-2 rounded">
-              ✓ Sử dụng XML Injection - Giữ nguyên 100% định dạng, công thức MathType và hình vẽ
+              ✓ XML Injection: Chèn NLS vào đúng vị trí, giữ nguyên định dạng gốc
             </p>
           )}
           <p className="text-red-600 font-medium mt-2 text-sm bg-red-50 p-2 rounded">
-            📌 Nội dung NLS bổ sung hiển thị <span style={{ color: 'red' }}>màu đỏ</span>
+            📌 Nội dung NLS hiển thị <span style={{ color: 'red' }}>màu đỏ</span> - được chèn vào phần Mục tiêu, Nội dung và Tổ chức thực hiện
           </p>
         </div>
 
@@ -432,7 +471,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
             rehypePlugins={[rehypeRaw]}
             components={components as any}
           >
-            {result}
+            {getCleanResultForPreview(result)}
           </ReactMarkdown>
         </div>
       )}
