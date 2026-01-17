@@ -203,8 +203,16 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
       }
 
       let processedLine = trimmed;
+
+      // Loại bỏ "* Tích hợp NLS:" hoặc "Tích hợp NLS:"
+      processedLine = processedLine.replace(/^\*?\s*Tích hợp NLS:\s*/i, '- ');
+
+      // Loại bỏ mã năng lực số dạng (1.1NC1a), (5.2.NC1a), (3.4NC1a), etc.
+      processedLine = processedLine.replace(/\s*\(\d+\.\d+\.?[A-Za-z]+\d*[a-z]?\)/g, '');
+      processedLine = processedLine.replace(/\s*\(\d+\.\d+[A-Za-z]+\d*[a-z]?\)/g, '');
+
       let isRedContent = trimmed.includes('<red>') || trimmed.includes('</red>');
-      processedLine = trimmed.replace(/<\/?red>/g, '');
+      processedLine = processedLine.replace(/<\/?red>/g, '');
 
       const content = escapeXml(processedLine);
 
