@@ -113,30 +113,27 @@ CẤU TRÚC ĐẦU RA - Sử dụng HOẠT_ĐỘNG_X để chỉ hoạt động 
 
 ===NLS_MỤC_TIÊU===
 <red>4. Năng lực số:</red>
-<red>- [Liệt kê năng lực số với mã] (mã NLS)</red>
+<red>- Sử dụng máy tính cầm tay để kiểm tra kết quả tính toán</red>
+<red>- Tìm kiếm thông tin trên Internet</red>
 ===END===
 
 ===NLS_HOẠT_ĐỘNG_1_NỘI_DUNG===
-[Chèn vào phần b) Nội dung của Hoạt động 1]
-<red>* Tích hợp NLS: [mô tả] (mã NLS)</red>
+<red>- HS sử dụng máy tính cầm tay để kiểm tra kết quả</red>
 ===END===
 
 ===NLS_HOẠT_ĐỘNG_1_BƯỚC_1===
-[Chèn vào Bước 1 của Hoạt động 1]
-<red>* Tích hợp NLS: [mô tả] (mã NLS)</red>
+<red>- GV khuyến khích HS tìm kiếm thông tin về bài toán đã học</red>
 ===END===
 
 ===NLS_HOẠT_ĐỘNG_2_BƯỚC_2===
-[Chèn vào Bước 2 của Hoạt động 2]
-<red>* Tích hợp NLS: [mô tả] (mã NLS)</red>
+<red>- HS sử dụng MTCT để tính toán và kiểm tra kết quả</red>
 ===END===
 
 ===NLS_HOẠT_ĐỘNG_3_BƯỚC_4===
-[Chèn vào Bước 4 của Hoạt động 3]
-<red>* Tích hợp NLS: [mô tả] (mã NLS)</red>
+<red>- HS sử dụng MTCT để kiểm tra lại đáp án</red>
 ===END===
 
-... (tiếp tục với các hoạt động khác)
+(tiếp tục tương tự với các hoạt động khác trong giáo án)
 
 NGUYÊN TẮC NGHIÊM NGẶT:
 1. PHẢI tạo ÍT NHẤT 6 sections NLS phân bổ vào NHIỀU hoạt động khác nhau.
@@ -152,39 +149,40 @@ LINH HOẠT VỚI TÊN CÁC BƯỚC:
 
 QUY TẮC ĐÁNH DẤU (BẮT BUỘC):
 - PHẢI dùng thẻ <red>nội dung</red> để đánh dấu màu đỏ.
-- TUYỆT ĐỐI KHÔNG dùng thẻ <u>, <b>, <i> hay thẻ HTML khác.
-- Viết NLS ngắn gọn, súc tích, liên quan trực tiếp đến nội dung.
+- TUYỆT ĐỐI KHÔNG viết "* Tích hợp NLS:" hay tiền tố tương tự.
+- TUYỆT ĐỐI KHÔNG ghi mã năng lực số dạng (1.1NC1a), (5.2.NC1a).
+- Chỉ viết nội dung thuần túy, ngắn gọn, bắt đầu bằng dấu gạch đầu dòng "-".
+- KHÔNG dùng thẻ <u>, <b>, <i> hay thẻ HTML khác.
 
 QUY TẮC KHI CÓ PPCT:
 - Trích xuất CHÍNH XÁC nội dung cột "Năng lực số" từ PPCT.
 - KHÔNG tự thêm năng lực số ngoài PPCT.
-- Đánh dấu: "(Nội dung trích xuất nguyên văn từ PPCT)"
 
 VÍ DỤ ĐẦU RA (phân bổ rải rác):
 ===NLS_MỤC_TIÊU===
 <red>4. Năng lực số:</red>
-<red>- Sử dụng MTCT để kiểm tra kết quả (5.2.NC1a)</red>
-<red>- Tìm kiếm thông tin trên Internet (1.1.CB1a)</red>
+<red>- Sử dụng máy tính cầm tay để kiểm tra kết quả</red>
+<red>- Tìm kiếm thông tin trên Internet</red>
 ===END===
 
 ===NLS_HOẠT_ĐỘNG_1_BƯỚC_1===
-<red>* Tích hợp NLS: GV khuyến khích HS tìm kiếm thông tin về bài toán đã học (1.1NC1a)</red>
+<red>- GV khuyến khích HS tìm kiếm thông tin về bài toán đã học để đặt vấn đề</red>
 ===END===
 
 ===NLS_HOẠT_ĐỘNG_2_BƯỚC_2===
-<red>* Tích hợp NLS: HS sử dụng MTCT để kiểm tra kết quả tính toán (5.2.NC1a)</red>
+<red>- HS sử dụng máy tính cầm tay để kiểm tra kết quả tính toán</red>
 ===END===
 
 ===NLS_HOẠT_ĐỘNG_3_NỘI_DUNG===
-<red>* Tích hợp NLS: HS tra cứu công thức trên Internet để áp dụng (1.1.CB1a)</red>
+<red>- HS tra cứu công thức trên Internet để áp dụng</red>
 ===END===
 
 ===NLS_HOẠT_ĐỘNG_3_BƯỚC_4===
-<red>* Tích hợp NLS: HS sử dụng MTCT để kiểm tra lại đáp án (5.2.NC1a)</red>
+<red>- HS sử dụng MTCT để kiểm tra lại đáp án</red>
 ===END===
 
 ===NLS_HOẠT_ĐỘNG_4_BƯỚC_3===
-<red>* Tích hợp NLS: HS chia sẻ kết quả qua Google Classroom (4.1.CB1a)</red>
+<red>- HS chia sẻ kết quả qua Google Classroom</red>
 ===END===
 `;
 
