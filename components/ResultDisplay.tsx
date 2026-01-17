@@ -194,6 +194,14 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
       const trimmed = line.trim();
       if (!trimmed) continue;
 
+      // Bỏ qua các dòng thông báo/hướng dẫn
+      if (trimmed.startsWith('[Chèn') || trimmed.startsWith('(Chèn') ||
+        trimmed.startsWith('[chèn') || trimmed.startsWith('(chèn') ||
+        trimmed.startsWith('(tiếp tục') || trimmed.startsWith('[tiếp tục') ||
+        trimmed.startsWith('...') || trimmed.startsWith('===')) {
+        continue;
+      }
+
       let processedLine = trimmed;
       let isRedContent = trimmed.includes('<red>') || trimmed.includes('</red>');
       processedLine = trimmed.replace(/<\/?red>/g, '');
