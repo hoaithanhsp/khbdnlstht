@@ -60,27 +60,54 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
           '3. Thái độ', 'c) Thái độ', 'c. Thái độ',
           'II. THIẾT BỊ', 'II. CHUẨN BỊ'
         ];
+      } else if (marker === 'NỘI_DUNG') {
+        searchPatterns = [
+          'b) Nội dung', 'b. Nội dung', 'B) Nội dung',
+          'Nội dung:', 'NỘI DUNG:', 'Nội dung bài học',
+          'a) Nội dung', 'a. Nội dung'
+        ];
+      } else if (marker === 'BƯỚC_1') {
+        searchPatterns = [
+          'Bước 1:', 'Bước 1.', 'Bước 1 ',
+          'Giao nhiệm vụ', 'giao nhiệm vụ',
+          'Chuyển giao nhiệm vụ', 'chuyển giao nhiệm vụ',
+          'Khởi động', 'khởi động',
+          'GV giao nhiệm vụ'
+        ];
+      } else if (marker === 'BƯỚC_2') {
+        searchPatterns = [
+          'Bước 2:', 'Bước 2.', 'Bước 2 ',
+          'Thực hiện nhiệm vụ', 'thực hiện nhiệm vụ',
+          'HS thực hiện', 'Học sinh thực hiện',
+          'Thực hành', 'thực hành'
+        ];
+      } else if (marker === 'BƯỚC_3') {
+        searchPatterns = [
+          'Bước 3:', 'Bước 3.', 'Bước 3 ',
+          'Báo cáo', 'báo cáo',
+          'Thảo luận', 'thảo luận',
+          'Trình bày', 'trình bày',
+          'Báo cáo, thảo luận'
+        ];
+      } else if (marker === 'BƯỚC_4') {
+        searchPatterns = [
+          'Bước 4:', 'Bước 4.', 'Bước 4 ',
+          'Kết luận', 'kết luận',
+          'Nhận định', 'nhận định',
+          'Đánh giá', 'đánh giá',
+          'Kết luận, nhận định'
+        ];
       } else if (marker.startsWith('HOẠT_ĐỘNG_')) {
-        // Extract số hoạt động
         const actNum = marker.replace('HOẠT_ĐỘNG_', '');
         searchPatterns = [
-          `Hoạt động ${actNum}:`,
-          `Hoạt động ${actNum}.`,
-          `Hoạt động ${actNum} `,
-          `**Hoạt động ${actNum}`,
-          `HOẠT ĐỘNG ${actNum}`,
-          `hoạt động ${actNum}`,
-          `HĐ ${actNum}:`,
-          `HĐ ${actNum}.`,
-          // Cho các số phức hợp như 2.1, 2.2
-          `Hoạt động ${actNum.replace('_', '.')}`,
+          `Hoạt động ${actNum}:`, `Hoạt động ${actNum}.`, `Hoạt động ${actNum} `,
+          `HOẠT ĐỘNG ${actNum}`, `HĐ ${actNum}:`,
+          `Hoạt động ${actNum.replace('_', '.')}`
         ];
       } else if (marker === 'CỦNG_CỐ') {
         searchPatterns = [
           'Củng cố', 'củng cố', 'CỦNG CỐ',
-          'Vận dụng', 'vận dụng', 'VẬN DỤNG',
-          'Hoạt động 5', 'Hoạt động 4',
-          'Tổng kết', 'tổng kết'
+          'Vận dụng', 'vận dụng', 'VẬN DỤNG'
         ];
       }
 
