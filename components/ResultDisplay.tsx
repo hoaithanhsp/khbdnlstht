@@ -60,55 +60,62 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
           '3. Thái độ', 'c) Thái độ', 'c. Thái độ',
           'II. THIẾT BỊ', 'II. CHUẨN BỊ'
         ];
-      } else if (marker === 'NỘI_DUNG') {
-        searchPatterns = [
-          'b) Nội dung', 'b. Nội dung', 'B) Nội dung',
-          'Nội dung:', 'NỘI DUNG:', 'Nội dung bài học',
-          'a) Nội dung', 'a. Nội dung'
-        ];
-      } else if (marker === 'BƯỚC_1') {
-        searchPatterns = [
-          'Bước 1:', 'Bước 1.', 'Bước 1 ',
-          'Giao nhiệm vụ', 'giao nhiệm vụ',
-          'Chuyển giao nhiệm vụ', 'chuyển giao nhiệm vụ',
-          'Khởi động', 'khởi động',
-          'GV giao nhiệm vụ'
-        ];
-      } else if (marker === 'BƯỚC_2') {
-        searchPatterns = [
-          'Bước 2:', 'Bước 2.', 'Bước 2 ',
-          'Thực hiện nhiệm vụ', 'thực hiện nhiệm vụ',
-          'HS thực hiện', 'Học sinh thực hiện',
-          'Thực hành', 'thực hành'
-        ];
-      } else if (marker === 'BƯỚC_3') {
-        searchPatterns = [
-          'Bước 3:', 'Bước 3.', 'Bước 3 ',
-          'Báo cáo', 'báo cáo',
-          'Thảo luận', 'thảo luận',
-          'Trình bày', 'trình bày',
-          'Báo cáo, thảo luận'
-        ];
-      } else if (marker === 'BƯỚC_4') {
-        searchPatterns = [
-          'Bước 4:', 'Bước 4.', 'Bước 4 ',
-          'Kết luận', 'kết luận',
-          'Nhận định', 'nhận định',
-          'Đánh giá', 'đánh giá',
-          'Kết luận, nhận định'
-        ];
-      } else if (marker.startsWith('HOẠT_ĐỘNG_')) {
-        const actNum = marker.replace('HOẠT_ĐỘNG_', '');
-        searchPatterns = [
+      }
+      // Parse format: HOẠT_ĐỘNG_X_NỘI_DUNG hoặc HOẠT_ĐỘNG_X_BƯỚC_Y
+      else if (marker.startsWith('HOẠT_ĐỘNG_')) {
+        const parts = marker.replace('HOẠT_ĐỘNG_', '').split('_');
+        const actNum = parts[0]; // Số hoạt động
+        const subPart = parts.slice(1).join('_'); // NỘI_DUNG hoặc BƯỚC_1, BƯỚC_2...
+
+        // Tìm Hoạt động X trước
+        const actPatterns = [
           `Hoạt động ${actNum}:`, `Hoạt động ${actNum}.`, `Hoạt động ${actNum} `,
-          `HOẠT ĐỘNG ${actNum}`, `HĐ ${actNum}:`,
-          `Hoạt động ${actNum.replace('_', '.')}`
+          `**Hoạt động ${actNum}`, `HOẠT ĐỘNG ${actNum}`, `HĐ ${actNum}:`
         ];
+
+        if (subPart === 'NỘI_DUNG') {
+          searchPatterns = [
+            ...actPatterns,
+            'b) Nội dung', 'b. Nội dung', 'Nội dung:'
+          ];
+        } else if (subPart === 'BƯỚC_1') {
+          searchPatterns = [
+            ...actPatterns,
+            'Bước 1:', 'Bước 1.', 'Giao nhiệm vụ', 'Chuyển giao nhiệm vụ'
+          ];
+        } else if (subPart === 'BƯỚC_2') {
+          searchPatterns = [
+            ...actPatterns,
+            'Bước 2:', 'Bước 2.', 'Thực hiện nhiệm vụ', 'HS thực hiện'
+          ];
+        } else if (subPart === 'BƯỚC_3') {
+          searchPatterns = [
+            ...actPatterns,
+            'Bước 3:', 'Bước 3.', 'Báo cáo', 'Thảo luận', 'Trình bày'
+          ];
+        } else if (subPart === 'BƯỚC_4') {
+          searchPatterns = [
+            ...actPatterns,
+            'Bước 4:', 'Bước 4.', 'Kết luận', 'Nhận định', 'Đánh giá'
+          ];
+        } else {
+          // Fallback cho HOẠT_ĐỘNG_X chung
+          searchPatterns = actPatterns;
+        }
+      }
+      // Backward compatibility với format cũ
+      else if (marker === 'NỘI_DUNG') {
+        searchPatterns = ['b) Nội dung', 'b. Nội dung', 'Nội dung:'];
+      } else if (marker === 'BƯỚC_1') {
+        searchPatterns = ['Bước 1:', 'Giao nhiệm vụ', 'Chuyển giao nhiệm vụ'];
+      } else if (marker === 'BƯỚC_2') {
+        searchPatterns = ['Bước 2:', 'Thực hiện nhiệm vụ', 'HS thực hiện'];
+      } else if (marker === 'BƯỚC_3') {
+        searchPatterns = ['Bước 3:', 'Báo cáo', 'Thảo luận'];
+      } else if (marker === 'BƯỚC_4') {
+        searchPatterns = ['Bước 4:', 'Kết luận', 'Nhận định'];
       } else if (marker === 'CỦNG_CỐ') {
-        searchPatterns = [
-          'Củng cố', 'củng cố', 'CỦNG CỐ',
-          'Vận dụng', 'vận dụng', 'VẬN DỤNG'
-        ];
+        searchPatterns = ['Củng cố', 'Vận dụng'];
       }
 
       sections.push({
