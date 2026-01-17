@@ -31,18 +31,25 @@ export const generateNLSLessonPlan = async (
       Người dùng ĐÃ CUNG CẤP nội dung Phân phối chương trình (PPCT).
       Đây là văn bản pháp quy, bạn phải tuân thủ TUYỆT ĐỐI các yêu cầu sau:
 
-      1. Đọc tên bài học trong "NỘI DUNG GIÁO ÁN GỐC".
-      2. Tìm bài học tương ứng trong nội dung PPCT.
-      3. Trích xuất NGUYÊN VĂN, CHÍNH XÁC nội dung cột "Năng lực số" (hoặc YCCĐ năng lực số) của bài học đó.
-      4. Đưa nội dung trích xuất đó vào phần Mục tiêu Năng lực số.
+      BƯỚC 1: Đọc tên bài học trong "NỘI DUNG GIÁO ÁN GỐC".
+      BƯỚC 2: Tìm ĐÚNG HÀNG của bài học đó trong bảng PPCT.
+      BƯỚC 3: Trích xuất NGUYÊN VĂN, CHÍNH XÁC nội dung từ cột "Năng lực số phát triển" (hoặc "YCCĐ năng lực số", "Năng lực số") của hàng đó.
+      BƯỚC 4: Đưa nội dung trích xuất vào phần Mục tiêu Năng lực số - GIỮ NGUYÊN MÃ SỐ VÀ NỘI DUNG.
+
+      📋 VÍ DỤ TRÍCH XUẤT ĐÚNG:
+      Nếu trong PPCT có:
+      | Bài 17 | ... | 1.1NC1a: Tìm kiếm thông tin, quy tắc. 3.4NC1a: Sử dụng MTCT để giải |
+      
+      Thì phần Mục tiêu phải ghi NGUYÊN VĂN:
+      <red>4. Năng lực số (Nội dung trích xuất nguyên văn từ PPCT):</red>
+      <red>- 1.1NC1a: Tìm kiếm thông tin, quy tắc.</red>
+      <red>- 3.4NC1a: Sử dụng MTCT để giải.</red>
       
       ⛔️ CÁC ĐIỀU CẤM (STRICTLY PROHIBITED):
       - CẤM TUYỆT ĐỐI việc tự ý thêm bất kỳ năng lực số nào khác không có trong PPCT của bài học này.
-      - CẤM tự ý nâng cao hay thay đổi cấp độ nếu PPCT không yêu cầu.
+      - CẤM thay đổi mã số hay nội dung. VD: 1.1NC1a phải giữ nguyên, không đổi thành 1.1CB1a.
       - CẤM dùng Khung năng lực số tham chiếu để bịa thêm mục tiêu. CHỈ dùng những gì PPCT ghi.
       - Nếu cột năng lực số trong PPCT để trống, thì mục tiêu NLS ghi là: "Không có (theo PPCT)".
-
-      Đánh dấu mục tiêu này bằng dòng chữ: "(Nội dung trích xuất nguyên văn từ PPCT)".
 
       NỘI DUNG PPCT:
       ${info.distributionContent}
