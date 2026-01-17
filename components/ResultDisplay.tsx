@@ -23,7 +23,7 @@ import { OriginalDocxFile } from '../types';
 interface ResultDisplayProps {
   result: string | null;
   loading: boolean;
-  originalDocx?: OriginalDocxFile | null; // File DOCX gốc cho XML Injection
+  originalDocx?: OriginalDocxFile | null;
 }
 
 const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, originalDocx }) => {
@@ -72,120 +72,91 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
     }
   };
 
-  // Helper: Parse text with bold, italic, underline
+  // Helper: Parse text with bold, italic, underline, and RED color for NLS content
   const parseTextWithFormatting = (text: string): TextRun[] => {
-    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|<u>.*?<\/u>)/g);
+    // Thêm regex cho thẻ <red>...</red>
+    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|<u>.*?<\/u>|<red>.*?<\/red>)/g);
 
     return parts.map(part => {
+      // Bold
       if (part.startsWith('**') && part.endsWith('**')) {
         return new TextRun({ text: part.slice(2, -2), bold: true });
       }
+      // Italic
       if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
         return new TextRun({ text: part.slice(1, -1), italics: true });
       }
       if (part.startsWith('_') && part.endsWith('_')) {
         return new TextRun({ text: part.slice(1, -1), italics: true });
       }
+      // Underline
       if (part.startsWith('<u>') && part.endsWith('</u>')) {
         const cleanText = part.replace(/<u>/g, '').replace(/<\/u>/g, '');
         return new TextRun({ text: cleanText, underline: { type: UnderlineType.SINGLE } });
+      }
+      // RED color for NLS content
+      if (part.startsWith('<red>') && part.endsWith('</red>')) {
+        const cleanText = part.replace(/<red>/g, '').replace(/<\/red>/g, '');
+        return new TextRun({
+          text: cleanText,
+          color: "FF0000", // Màu đỏ
+          bold: true
+        });
       }
       return new TextRun({ text: part });
     });
   };
 
-  // Escape XML special characters
-  const escapeXml = (text: string): string => {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
-  };
+  // Hàm tạo file DOCX mới từ Markdown với NLS xen kẽ và copy OLE từ file gốc
+  const createDocxWithOLE = async (content: string, originalBuffer?: ArrayBuffer): Promise<Blob> => {
+    // Bước 1: Tạo file DOCX mới từ Markdown
+    const newDocBlob = await createNewDocx(content);
 
-  // Chuyển Markdown sang Word XML paragraphs
-  const convertMarkdownToWordXml = (markdown: string): string => {
-    const lines = markdown.split('\n');
-    let xml = '';
+    // Bước 2: Nếu có file gốc, copy OLE objects vào file mới
+    if (originalBuffer) {
+      try {
+        const originalZip = await JSZip.loadAsync(originalBuffer);
+        const newZip = await JSZip.loadAsync(await newDocBlob.arrayBuffer());
 
-    // Thêm dòng phân cách trước nội dung NLS
-    xml += `
-      <w:p>
-        <w:pPr><w:pBdr><w:top w:val="single" w:sz="12" w:space="1" w:color="0066CC"/></w:pBdr></w:pPr>
-      </w:p>
-      <w:p>
-        <w:pPr><w:jc w:val="center"/></w:pPr>
-        <w:r>
-          <w:rPr><w:b/><w:color w:val="0066CC"/><w:sz w:val="28"/></w:rPr>
-          <w:t>--- NỘI DUNG TÍCH HỢP NĂNG LỰC SỐ (AI Generated) ---</w:t>
-        </w:r>
-      </w:p>
-    `;
+        // Copy các file OLE embeddings từ file gốc
+        const embeddings = originalZip.folder('word/embeddings');
+        if (embeddings) {
+          embeddings.forEach(async (relativePath, file) => {
+            if (!file.dir) {
+              const fileContent = await file.async('arraybuffer');
+              newZip.file(`word/embeddings/${relativePath}`, fileContent);
+            }
+          });
+        }
 
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        xml += '<w:p/>';
-        continue;
-      }
+        // Copy các file media (hình ảnh) từ file gốc
+        const media = originalZip.folder('word/media');
+        if (media) {
+          media.forEach(async (relativePath, file) => {
+            if (!file.dir) {
+              const fileContent = await file.async('arraybuffer');
+              newZip.file(`word/media/${relativePath}`, fileContent);
+            }
+          });
+        }
 
-      if (trimmed.startsWith('## ')) {
-        const content = escapeXml(trimmed.replace('## ', ''));
-        xml += `<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>${content}</w:t></w:r></w:p>`;
-      } else if (trimmed.startsWith('### ')) {
-        const content = escapeXml(trimmed.replace('### ', ''));
-        xml += `<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>${content}</w:t></w:r></w:p>`;
-      } else if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
-        const content = escapeXml(trimmed.slice(2, -2));
-        xml += `<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${content}</w:t></w:r></w:p>`;
-      } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-        const content = escapeXml(trimmed.substring(2));
-        xml += `<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>${content}</w:t></w:r></w:p>`;
-      } else if (trimmed.includes('<u>') && trimmed.includes('</u>')) {
-        const content = escapeXml(trimmed.replace(/<\/?u>/g, ''));
-        xml += `<w:p><w:r><w:rPr><w:u w:val="single"/><w:color w:val="0066CC"/></w:rPr><w:t>${content}</w:t></w:r></w:p>`;
-      } else {
-        const content = escapeXml(trimmed);
-        xml += `<w:p><w:r><w:t>${content}</w:t></w:r></w:p>`;
+        // Xuất file mới với OLE objects
+        const finalBlob = await newZip.generateAsync({
+          type: 'blob',
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        });
+
+        return finalBlob;
+      } catch (error) {
+        console.warn('Không thể copy OLE objects, sử dụng file mới:', error);
+        return newDocBlob;
       }
     }
 
-    return xml;
+    return newDocBlob;
   };
 
-  // XML Injection: Chèn nội dung vào file DOCX gốc
-  const injectContentToDocx = async (
-    originalArrayBuffer: ArrayBuffer,
-    contentToInject: string
-  ): Promise<Blob> => {
-    const zip = await JSZip.loadAsync(originalArrayBuffer);
-
-    const documentXmlFile = zip.file('word/document.xml');
-    if (!documentXmlFile) {
-      throw new Error('File DOCX không hợp lệ: không tìm thấy word/document.xml');
-    }
-
-    let documentXml = await documentXmlFile.async('string');
-    const nlsContent = convertMarkdownToWordXml(contentToInject);
-
-    if (documentXml.includes('</w:body>')) {
-      documentXml = documentXml.replace('</w:body>', `${nlsContent}</w:body>`);
-    } else {
-      throw new Error('Không tìm thấy thẻ </w:body> trong document.xml');
-    }
-
-    zip.file('word/document.xml', documentXml);
-
-    const blob = await zip.generateAsync({
-      type: 'blob',
-      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    });
-
-    return blob;
-  };
-
-  // Hàm tạo file DOCX mới (fallback)
+  // Hàm tạo file DOCX mới từ Markdown (với NLS xen kẽ)
   const createNewDocx = async (content: string): Promise<Blob> => {
     const lines = content.split('\n');
     const children: (Paragraph | Table)[] = [];
@@ -217,31 +188,43 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
         continue;
       }
 
+      // Kiểm tra nếu dòng chứa <red> tag - đây là nội dung NLS
+      const isNLSContent = trimmed.includes('<red>') || trimmed.includes('</red>');
+
+      // Heading 1 (##)
       if (trimmed.startsWith('## ')) {
         children.push(new Paragraph({
           children: parseTextWithFormatting(trimmed.replace('## ', '')),
           heading: HeadingLevel.HEADING_1,
           spacing: { before: 200, after: 100 }
         }));
-      } else if (trimmed.startsWith('### ')) {
+      }
+      // Heading 2 (###)
+      else if (trimmed.startsWith('### ')) {
         children.push(new Paragraph({
           children: parseTextWithFormatting(trimmed.replace('### ', '')),
           heading: HeadingLevel.HEADING_2,
           spacing: { before: 150, after: 50 }
         }));
-      } else if (trimmed.startsWith('#### ')) {
+      }
+      // Heading 3 (####)
+      else if (trimmed.startsWith('#### ')) {
         children.push(new Paragraph({
           children: parseTextWithFormatting(trimmed.replace('#### ', '')),
           heading: HeadingLevel.HEADING_3,
           spacing: { before: 100, after: 50 }
         }));
-      } else if (trimmed.startsWith('- ') || trimmed.startsWith('+ ') || trimmed.startsWith('* ')) {
+      }
+      // List items
+      else if (trimmed.startsWith('- ') || trimmed.startsWith('+ ') || trimmed.startsWith('* ')) {
         const listContent = trimmed.substring(2);
         children.push(new Paragraph({
           children: parseTextWithFormatting(listContent),
           bullet: { level: 0 }
         }));
-      } else {
+      }
+      // Normal text (with potential red NLS content)
+      else {
         children.push(new Paragraph({
           children: parseTextWithFormatting(trimmed),
           spacing: { after: 100 },
@@ -275,15 +258,13 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
       let blob: Blob;
       let fileName: string;
 
-      if (originalDocx?.arrayBuffer) {
-        // Sử dụng XML Injection - giữ nguyên file gốc và bảo toàn OLE
-        console.log('Sử dụng XML Injection để giữ nguyên file gốc...');
-        blob = await injectContentToDocx(originalDocx.arrayBuffer, result);
+      // Tạo file DOCX mới từ Markdown (với NLS xen kẽ) và copy OLE từ file gốc (nếu có)
+      console.log('Tạo file DOCX với NLS xen kẽ...');
+      blob = await createDocxWithOLE(result, originalDocx?.arrayBuffer);
+
+      if (originalDocx?.fileName) {
         fileName = originalDocx.fileName.replace('.docx', '_NLS.docx');
       } else {
-        // Fallback: tạo file mới
-        console.log('Không có file gốc, tạo file DOCX mới...');
-        blob = await createNewDocx(result);
         fileName = 'Giao_an_NLS.docx';
       }
 
@@ -315,6 +296,13 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
 
   if (!result) return null;
 
+  // Custom component để render thẻ <red> màu đỏ trong preview
+  const components = {
+    red: ({ children }: { children: React.ReactNode }) => (
+      <span style={{ color: 'red', fontWeight: 'bold' }}>{children}</span>
+    ),
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg border border-blue-200 overflow-hidden animate-fade-in-up">
       <div className="bg-blue-50 px-6 py-8 flex flex-col items-center justify-center text-center space-y-4">
@@ -331,9 +319,12 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
               </span>
             )}
           </p>
+          <p className="text-red-600 font-medium mt-2 text-sm bg-red-50 p-2 rounded">
+            📌 Nội dung NLS bổ sung được hiển thị <strong>màu đỏ</strong> và xen kẽ trong giáo án
+          </p>
           {originalDocx && (
             <p className="text-blue-600 font-medium mt-2 text-sm bg-blue-100 p-2 rounded">
-              ✓ Sử dụng XML Injection - Giữ nguyên công thức MathType và hình vẽ
+              ✓ Đã copy hình ảnh và công thức từ file gốc (nếu có)
             </p>
           )}
         </div>
@@ -376,7 +367,10 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
 
       {showPreview && (
         <div className="p-8 prose prose-blue max-w-none prose-p:text-slate-700 prose-headings:text-blue-900 border-t border-slate-100 bg-slate-50/50">
-          <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+          <ReactMarkdown
+            rehypePlugins={[rehypeRaw]}
+            components={components as any}
+          >
             {result}
           </ReactMarkdown>
         </div>
