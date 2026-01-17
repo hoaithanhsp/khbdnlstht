@@ -32,40 +32,40 @@ Tôi đang triển khai ứng dụng từ github qua vercel, hãy kiểm tra gi�
 ## 5. Cơ chế hoạt động (XML Injection & Bảo toàn OLE)
 
 ### 5.1. Giữ nguyên File gốc (XML Injection)
-- **Mô tả**: Hệ thống sử dụng kỹ thuật **XML Injection** để chèn nội dung vào cấu trúc file Word (.docx) hiện tại thay vì tạo file mới từ đầu.
+- **Mô tả**: Hệ thống sử dụng kỹ thuật **XML Injection** để chèn nội dung vào cấu trúc file Word (.docx) hiện tại.
 - **Nguyên lý hoạt động**:
-  1. File DOCX thực chất là file ZIP chứa các file XML bên trong (document.xml, styles.xml, v.v.).
-  2. Hệ thống sử dụng **JSZip** để:
-     - Giải nén file DOCX gốc
-     - Đọc file `word/document.xml`
-     - Chèn nội dung NLS (màu đỏ) vào trước thẻ `</w:body>`
-     - Đóng gói lại thành file DOCX mới
-  3. **Kết quả**: Giữ nguyên 100% định dạng, style, công thức, hình ảnh của file gốc.
+  1. File DOCX = file ZIP chứa các file XML
+  2. Sử dụng **JSZip** để giải nén và đọc `word/document.xml`
+  3. **Tìm vị trí** các phần trong giáo án (Mục tiêu, Nội dung, Tổ chức)
+  4. **Chèn NLS vào đúng vị trí** tương ứng
+  5. Đóng gói lại thành file DOCX mới
 
 ### 5.2. Bảo toàn OLE Objects
-- **Mô tả**: Công thức MathType và Hình vẽ nhúng (OLE Objects) **không bị ảnh hưởng** vì không thông qua quá trình chuyển đổi định dạng.
-- **Lý do**:
-  1. Các file OLE nằm trong thư mục `word/embeddings/` được giữ nguyên
-  2. Các file media (hình ảnh) trong `word/media/` được giữ nguyên
-  3. Tham chiếu đến OLE objects trong document.xml không bị thay đổi
-  4. Chỉ **CHÈN THÊM** nội dung mới, không xóa hay sửa đổi nội dung có sẵn
+- Công thức MathType và Hình vẽ **không bị ảnh hưởng**
+- Các file trong `word/embeddings/` và `word/media/` được giữ nguyên
+- Chỉ **CHÈN THÊM** nội dung, không xóa/sửa nội dung cũ
 
-### 5.3. Định dạng nội dung NLS bổ sung
-- Nội dung NLS được chèn vào **cuối file gốc** (trước `</w:body>`)
-- Hiển thị **màu đỏ** (không in đậm) để giáo viên dễ nhận biết
-- Có dòng phân cách "═══ NỘI DUNG TÍCH HỢP NĂNG LỰC SỐ ═══"
+### 5.3. Cấu trúc đầu ra từ AI
+AI trả về nội dung theo 3 section với markers rõ ràng:
+- `===NLS_MỤC_TIÊU===` ... `===END_MỤC_TIÊU===`: Chèn sau phần Thái độ/Phẩm chất
+- `===NLS_NỘI_DUNG===` ... `===END_NỘI_DUNG===`: Chèn sau phần b) Nội dung
+- `===NLS_TỔ_CHỨC===` ... `===END_TỔ_CHỨC===`: Chèn vào phần d) Tổ chức thực hiện
 
-### 5.4. Xử lý file PPCT
-- Nếu có file **Phân phối chương trình (PPCT)**:
-  1. AI trích xuất **chính xác** cột "Năng lực số" từ PPCT cho bài học tương ứng
-  2. Gắn vào phần Mục tiêu chung của giáo án
-  3. Tích hợp các hoạt động NLS vào tiến trình dạy học
-- **Quy tắc**: KHÔNG tự ý thêm năng lực số ngoài PPCT khi có file PPCT.
+### 5.4. Vị trí chèn thông minh
+Hệ thống tìm các pattern trong file gốc để chèn vào đúng vị trí:
+- **Mục tiêu**: Sau "Thái độ", "Phẩm chất", "Năng lực chung"
+- **Nội dung**: Sau "b) Nội dung", "Sản phẩm"
+- **Tổ chức**: Sau "d) Tổ chức thực hiện", "Hoạt động của GV"
 
-### 5.5. Thư viện sử dụng
+### 5.5. Định dạng nội dung NLS
+- Hiển thị **màu đỏ** (không in đậm) để dễ nhận biết
+- Sử dụng thẻ `<red>...</red>` trong Markdown
+
+### 5.6. Thư viện sử dụng
 - **JSZip**: Đọc và ghi file DOCX (ZIP)
 - Workflow:
   ```
-  File DOCX gốc → JSZip (giải nén) → Chèn NLS vào document.xml → Đóng gói lại → File DOCX mới (giữ nguyên OLE)
+  File gốc → JSZip → Tìm vị trí → Chèn NLS màu đỏ → Đóng gói → File DOCX mới
   ```
+
 
