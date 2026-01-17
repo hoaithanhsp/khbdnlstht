@@ -4,10 +4,9 @@ import { SYSTEM_INSTRUCTION, NLS_FRAMEWORK_DATA } from "../constants";
 
 // Define the hierarchy of models for fallback
 const MODELS = [
-  "gemini-2.5-flash",        // Priority 1: Stable standard (Default)
-  "gemini-3-flash-preview",  // Priority 2: Fast & Good quality
-  "gemini-3-pro-preview",    // Priority 3: Deep thinking / Best quality
-  "gemini-2.5-pro"           // Priority 4: Legacy high/stable
+  "gemini-3-flash-preview",  // Priority 1: Default - Fast & Good quality
+  "gemini-3-pro-preview",    // Priority 2: Deep thinking / Best quality
+  "gemini-2.5-flash"         // Priority 3: Fallback stable
 ];
 
 export const generateNLSLessonPlan = async (
