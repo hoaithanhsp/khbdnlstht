@@ -35,36 +35,37 @@ Tôi đang triển khai ứng dụng từ github qua vercel, hãy kiểm tra gi�
 - **Mô tả**: Hệ thống sử dụng kỹ thuật **XML Injection** để chèn nội dung vào cấu trúc file Word (.docx) hiện tại thay vì tạo file mới từ đầu.
 - **Nguyên lý hoạt động**:
   1. File DOCX thực chất là file ZIP chứa các file XML bên trong (document.xml, styles.xml, v.v.).
-  2. Thay vì tạo file DOCX mới hoàn toàn, hệ thống:
-     - Giải nén file DOCX gốc (không làm thay đổi file gốc)
-     - Đọc và phân tích cấu trúc XML của tài liệu
-     - Chèn nội dung NLS (Năng lực số) vào đúng vị trí trong cấu trúc XML
-     - Đóng gói lại thành file DOCX mới với nội dung đã được bổ sung
-  3. Ưu điểm: Giữ nguyên toàn bộ định dạng, style, và đối tượng nhúng của file gốc.
+  2. Hệ thống sử dụng **JSZip** để:
+     - Giải nén file DOCX gốc
+     - Đọc file `word/document.xml`
+     - Chèn nội dung NLS (màu đỏ) vào trước thẻ `</w:body>`
+     - Đóng gói lại thành file DOCX mới
+  3. **Kết quả**: Giữ nguyên 100% định dạng, style, công thức, hình ảnh của file gốc.
 
 ### 5.2. Bảo toàn OLE Objects
-- **Mô tả**: Công thức MathType và Hình vẽ nhúng (OLE Objects) không bị ảnh hưởng vì không thông qua quá trình chuyển đổi định dạng.
+- **Mô tả**: Công thức MathType và Hình vẽ nhúng (OLE Objects) **không bị ảnh hưởng** vì không thông qua quá trình chuyển đổi định dạng.
 - **Lý do**:
-  1. OLE (Object Linking and Embedding) là các đối tượng nhúng trong file Word như:
-     - Công thức MathType/Equation Editor
-     - Hình vẽ từ các ứng dụng khác (Visio, Excel Chart, v.v.)
-     - Các đối tượng nhúng khác
-  2. Khi sử dụng kỹ thuật XML Injection:
-     - Các file nhúng OLE (trong thư mục `embeddings/`) được giữ nguyên
-     - Tham chiếu đến OLE objects trong document.xml không bị thay đổi
-     - Chỉ chèn thêm nội dung mới, không xóa hay sửa đổi nội dung có sẵn
-  3. Kết quả: Công thức toán học và hình vẽ vẫn hiển thị đúng và có thể chỉnh sửa được.
+  1. Các file OLE nằm trong thư mục `word/embeddings/` được giữ nguyên
+  2. Các file media (hình ảnh) trong `word/media/` được giữ nguyên
+  3. Tham chiếu đến OLE objects trong document.xml không bị thay đổi
+  4. Chỉ **CHÈN THÊM** nội dung mới, không xóa hay sửa đổi nội dung có sẵn
 
-### 5.3. So sánh với phương pháp truyền thống
-| Phương pháp | Ưu điểm | Nhược điểm |
-|-------------|---------|------------|
-| **Tạo file mới (docx library)** | Đơn giản, dễ implement | Mất OLE objects, mất định dạng phức tạp |
-| **XML Injection (đề xuất)** | Giữ nguyên OLE, định dạng gốc | Phức tạp hơn, cần xử lý cấu trúc XML |
+### 5.3. Định dạng nội dung NLS bổ sung
+- Nội dung NLS được chèn vào **cuối file gốc** (trước `</w:body>`)
+- Hiển thị **màu đỏ** (không in đậm) để giáo viên dễ nhận biết
+- Có dòng phân cách "═══ NỘI DUNG TÍCH HỢP NĂNG LỰC SỐ ═══"
 
-### 5.4. Thư viện đề xuất (cho implementation tương lai)
-- **JSZip**: Giải nén và đóng gói file DOCX (ZIP)
-- **xml2js** hoặc **fast-xml-parser**: Parse và chỉnh sửa XML
+### 5.4. Xử lý file PPCT
+- Nếu có file **Phân phối chương trình (PPCT)**:
+  1. AI trích xuất **chính xác** cột "Năng lực số" từ PPCT cho bài học tương ứng
+  2. Gắn vào phần Mục tiêu chung của giáo án
+  3. Tích hợp các hoạt động NLS vào tiến trình dạy học
+- **Quy tắc**: KHÔNG tự ý thêm năng lực số ngoài PPCT khi có file PPCT.
+
+### 5.5. Thư viện sử dụng
+- **JSZip**: Đọc và ghi file DOCX (ZIP)
 - Workflow:
   ```
-  File DOCX gốc → JSZip (giải nén) → Parse XML → Chèn nội dung NLS → Đóng gói lại → File DOCX mới
+  File DOCX gốc → JSZip (giải nén) → Chèn NLS vào document.xml → Đóng gói lại → File DOCX mới (giữ nguyên OLE)
   ```
+
