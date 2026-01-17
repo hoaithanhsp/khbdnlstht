@@ -211,6 +211,9 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
       processedLine = processedLine.replace(/\s*\(\d+\.\d+\.?[A-Za-z]+\d*[a-z]?\)/g, '');
       processedLine = processedLine.replace(/\s*\(\d+\.\d+[A-Za-z]+\d*[a-z]?\)/g, '');
 
+      // Loại bỏ thẻ <u> và </u>
+      processedLine = processedLine.replace(/<\/?u>/g, '');
+
       let isRedContent = trimmed.includes('<red>') || trimmed.includes('</red>');
       processedLine = processedLine.replace(/<\/?red>/g, '');
 
