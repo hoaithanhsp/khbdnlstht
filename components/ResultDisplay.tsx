@@ -42,7 +42,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
     const sections: NLSSection[] = [];
 
     // Regex để tìm tất cả các section: ===NLS_XXX=== ... ===END===
-    const sectionRegex = /===NLS_([^=]+)===([\\s\\S]*?)===END===/g;
+    const sectionRegex = /===NLS_([^=]+)===([\s\S]*?)===END===/g;
     let match;
 
     while ((match = sectionRegex.exec(content)) !== null) {
