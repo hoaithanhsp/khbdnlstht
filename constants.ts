@@ -136,10 +136,13 @@ CẤU TRÚC ĐẦU RA - Sử dụng HOẠT_ĐỘNG_X để chỉ hoạt động 
 (tiếp tục tương tự với các hoạt động khác trong giáo án)
 
 NGUYÊN TẮC NGHIÊM NGẶT:
-1. PHẢI tạo ÍT NHẤT 6 sections NLS phân bổ vào NHIỀU hoạt động khác nhau.
+1. PHẢI tạo ÍT NHẤT 6 sections NLS (CHƯA KỂ phần NLS_MỤC_TIÊU) phân bổ vào NHIỀU hoạt động khác nhau.
+   - NLS_MỤC_TIÊU là phần mục tiêu chung, KHÔNG TÍNH vào 6 sections bắt buộc.
+   - 6 sections NLS phải nằm trong các HOẠT_ĐỘNG (ví dụ: NLS_HOẠT_ĐỘNG_1_BƯỚC_1, NLS_HOẠT_ĐỘNG_2_NỘI_DUNG...).
 2. KHÔNG được dồn tất cả NLS vào 1 hoạt động - phải RẢI ĐỀU khắp giáo án.
 3. Mỗi section ghi rõ: HOẠT_ĐỘNG_X_BƯỚC_Y hoặc HOẠT_ĐỘNG_X_NỘI_DUNG.
 4. Phân tích giáo án để chọn vị trí PHÙ HỢP với nội dung từng hoạt động.
+5. TỐI THIỂU phải có: NLS_MỤC_TIÊU + 6 sections trong các hoạt động = 7 sections tổng cộng.
 
 LINH HOẠT VỚI TÊN CÁC BƯỚC:
 - "Bước 1" = "Giao nhiệm vụ", "Chuyển giao nhiệm vụ", "Khởi động"...
