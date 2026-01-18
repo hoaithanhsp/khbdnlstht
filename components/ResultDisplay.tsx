@@ -53,12 +53,17 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
       let searchPatterns: string[] = [];
 
       if (marker === 'MỤC_TIÊU') {
+        // Chèn NLS Mục tiêu SAU phần "Năng lực chung" hoặc "3. Thái độ" trong I. MỤC TIÊU
         searchPatterns = [
+          // Ưu tiên tìm "Năng lực chung" hoặc "Năng lực" trong phần mục tiêu
+          'Năng lực chung', 'năng lực chung', 'NĂNG LỰC CHUNG',
+          'Năng lực:', 'năng lực:', '3. Năng lực',
+          // Tìm "Thái độ" hoặc "Phẩm chất" - thường ở sau phần năng lực
+          '3. Thái độ', 'c) Thái độ', 'c. Thái độ',
           'Thái độ', 'thái độ', 'THÁI ĐỘ',
           'Phẩm chất', 'phẩm chất', 'PHẨM CHẤT',
-          'Năng lực chung', 'năng lực chung',
-          '3. Thái độ', 'c) Thái độ', 'c. Thái độ',
-          'II. THIẾT BỊ', 'II. CHUẨN BỊ'
+          // Fallback - tìm phần mục tiêu chung
+          'I. MỤC TIÊU', 'I. Mục tiêu', '1. Kiến thức', 'a) Kiến thức'
         ];
       }
       // Parse format: HOẠT_ĐỘNG_X hoặc HOẠT_ĐỘNG_X_VỊ_TRÍ
