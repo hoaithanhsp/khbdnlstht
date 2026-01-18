@@ -42,7 +42,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
     const sections: NLSSection[] = [];
 
     // Regex để tìm tất cả các section: ===NLS_XXX=== ... ===END===
-    const sectionRegex = /===NLS_([^=]+)===([\s\S]*?)===END===/g;
+    const sectionRegex = /===NLS_([^=]+)===([\\s\\S]*?)===END===/g;
     let match;
 
     while ((match = sectionRegex.exec(content)) !== null) {
@@ -61,45 +61,72 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
           'II. THIẾT BỊ', 'II. CHUẨN BỊ'
         ];
       }
-      // Parse format: HOẠT_ĐỘNG_X_NỘI_DUNG hoặc HOẠT_ĐỘNG_X_BƯỚC_Y
+      // Parse format: HOẠT_ĐỘNG_X hoặc HOẠT_ĐỘNG_X_VỊ_TRÍ
       else if (marker.startsWith('HOẠT_ĐỘNG_')) {
         const parts = marker.replace('HOẠT_ĐỘNG_', '').split('_');
         const actNum = parts[0]; // Số hoạt động
-        const subPart = parts.slice(1).join('_'); // NỘI_DUNG hoặc BƯỚC_1, BƯỚC_2...
+        const subPart = parts.slice(1).join('_'); // VỊ_TRÍ: NỘI_DUNG, SẢN_PHẨM, TỔ_CHỨC, BƯỚC_X...
 
         // Tìm Hoạt động X trước
         const actPatterns = [
           `Hoạt động ${actNum}:`, `Hoạt động ${actNum}.`, `Hoạt động ${actNum} `,
-          `**Hoạt động ${actNum}`, `HOẠT ĐỘNG ${actNum}`, `HĐ ${actNum}:`
+          `**Hoạt động ${actNum}`, `HOẠT ĐỘNG ${actNum}`, `HĐ ${actNum}:`,
+          `Hoạt động ${actNum}`, `HĐ${actNum}`, `hoạt động ${actNum}`
         ];
 
+        // Ánh xạ VỊ_TRÍ sang search patterns linh hoạt
         if (subPart === 'NỘI_DUNG') {
           searchPatterns = [
             ...actPatterns,
-            'b) Nội dung', 'b. Nội dung', 'Nội dung:'
+            'b) Nội dung', 'b. Nội dung', 'Nội dung:', 'b)Nội dung',
+            '* Nội dung', '- Nội dung', 'NỘI DUNG'
+          ];
+        } else if (subPart === 'SẢN_PHẨM') {
+          searchPatterns = [
+            ...actPatterns,
+            'c) Sản phẩm', 'c. Sản phẩm', 'Sản phẩm:', 'c)Sản phẩm',
+            '* Sản phẩm', '- Sản phẩm', 'SẢN PHẨM'
+          ];
+        } else if (subPart === 'TỔ_CHỨC') {
+          searchPatterns = [
+            ...actPatterns,
+            'd) Tổ chức thực hiện', 'd. Tổ chức thực hiện', 'd)Tổ chức',
+            'Tổ chức thực hiện', 'd) Tổ chức', 'd. Tổ chức',
+            '* Tổ chức', 'TỔ CHỨC THỰC HIỆN'
+          ];
+        } else if (subPart === 'MỤC_TIÊU_HĐ') {
+          searchPatterns = [
+            ...actPatterns,
+            'a) Mục tiêu', 'a. Mục tiêu', 'Mục tiêu:', 'a)Mục tiêu',
+            '* Mục tiêu', '- Mục tiêu'
           ];
         } else if (subPart === 'BƯỚC_1') {
           searchPatterns = [
             ...actPatterns,
-            'Bước 1:', 'Bước 1.', 'Giao nhiệm vụ', 'Chuyển giao nhiệm vụ'
+            'Bước 1:', 'Bước 1.', 'Bước 1 ', 'bước 1',
+            'Giao nhiệm vụ', 'Chuyển giao nhiệm vụ', 'Chuyển giao'
           ];
         } else if (subPart === 'BƯỚC_2') {
           searchPatterns = [
             ...actPatterns,
-            'Bước 2:', 'Bước 2.', 'Thực hiện nhiệm vụ', 'HS thực hiện'
+            'Bước 2:', 'Bước 2.', 'Bước 2 ', 'bước 2',
+            'Thực hiện nhiệm vụ', 'HS thực hiện'
           ];
         } else if (subPart === 'BƯỚC_3') {
           searchPatterns = [
             ...actPatterns,
-            'Bước 3:', 'Bước 3.', 'Báo cáo', 'Thảo luận', 'Trình bày'
+            'Bước 3:', 'Bước 3.', 'Bước 3 ', 'bước 3',
+            'Báo cáo', 'Thảo luận', 'Trình bày', 'báo cáo, thảo luận'
           ];
-        } else if (subPart === 'BƯỚC_4') {
+        } else if (subPart === 'BƯỚC_4' || subPart === 'KẾT_LUẬN') {
           searchPatterns = [
             ...actPatterns,
-            'Bước 4:', 'Bước 4.', 'Kết luận', 'Nhận định', 'Đánh giá'
+            'Bước 4:', 'Bước 4.', 'Bước 4 ', 'bước 4',
+            'Kết luận', 'Nhận định', 'Đánh giá', 'kết luận, nhận định',
+            'Kết luận, nhận định'
           ];
         } else {
-          // Fallback cho HOẠT_ĐỘNG_X chung
+          // Fallback cho HOẠT_ĐỘNG_X chung (không có VỊ_TRÍ cụ thể)
           searchPatterns = actPatterns;
         }
       }
@@ -432,11 +459,19 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, loading, original
   // Đếm số section NLS
   const sections = parseAllNLSSections(result);
 
-  // Hiển thị nội dung preview
+  // Hiển thị nội dung preview - hỗ trợ tất cả các markers linh hoạt
   const getCleanResultForPreview = (content: string): string => {
     return content
       .replace(/===NLS_MỤC_TIÊU===/g, '\n**📌 MỤC TIÊU NĂNG LỰC SỐ:**\n')
-      .replace(/===NLS_HOẠT_ĐỘNG_(\d+)===/g, '\n**📌 HOẠT ĐỘNG $1 - TÍCH HỢP NLS:**\n')
+      // Markers với VỊ_TRÍ đầy đủ: HOẠT_ĐỘNG_X_VỊ_TRÍ
+      .replace(/===NLS_HOẠT_ĐỘNG_(\d+)_NỘI_DUNG===/g, '\n**📌 HOẠT ĐỘNG $1 - NỘI DUNG NLS:**\n')
+      .replace(/===NLS_HOẠT_ĐỘNG_(\d+)_SẢN_PHẨM===/g, '\n**📌 HOẠT ĐỘNG $1 - SẢN PHẨM NLS:**\n')
+      .replace(/===NLS_HOẠT_ĐỘNG_(\d+)_TỔ_CHỨC===/g, '\n**📌 HOẠT ĐỘNG $1 - TỔ CHỨC NLS:**\n')
+      .replace(/===NLS_HOẠT_ĐỘNG_(\d+)_MỤC_TIÊU_HĐ===/g, '\n**📌 HOẠT ĐỘNG $1 - MỤC TIÊU NLS:**\n')
+      .replace(/===NLS_HOẠT_ĐỘNG_(\d+)_BƯỚC_(\d+)===/g, '\n**📌 HOẠT ĐỘNG $1 - BƯỚC $2 NLS:**\n')
+      .replace(/===NLS_HOẠT_ĐỘNG_(\d+)_KẾT_LUẬN===/g, '\n**📌 HOẠT ĐỘNG $1 - KẾT LUẬN NLS:**\n')
+      // Fallback cho markers đơn giản: HOẠT_ĐỘNG_X
+      .replace(/===NLS_HOẠT_ĐỘNG_(\d+)===/g, '\n**📌 HOẠT ĐỘNG $1 - NLS:**\n')
       .replace(/===NLS_CỦNG_CỐ===/g, '\n**📌 CỦNG CỐ - TÍCH HỢP NLS:**\n')
       .replace(/===END===/g, '\n---\n');
   };
